@@ -31,8 +31,10 @@ SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key-change-m
 DEBUG = os.environ.get("DJANGO_DEBUG", "1") == "1"
 # ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "https://luncheon-pureness-ruckus.ngrok-free.dev")
 
-ALLOWED_HOSTS = ["luncheon-pureness-ruckus.ngrok-free.dev", "127.0.0.1"]
-CSRF_TRUSTED_ORIGINS = ["https://luncheon-pureness-ruckus.ngrok-free.dev"]
+# ALLOWED_HOSTS = ["luncheon-pureness-ruckus.ngrok-free.dev", "127.0.0.1"]
+# CSRF_TRUSTED_ORIGINS = ["https://luncheon-pureness-ruckus.ngrok-free.dev"]
+ALLOWED_HOSTS = ["whatsapp-bot-1-qdtv.onrender.com", "127.0.0.1"]
+CSRF_TRUSTED_ORIGINS = [" https://whatsapp-bot-1-qdtv.onrender.com"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
