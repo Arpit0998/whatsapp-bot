@@ -1,0 +1,378 @@
+<!doctype html>
+{% verbatim %}
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autoveer WhatsApp Assistant</title>
+<style>
+:root{
+  --bg:#f0f2f5; --panel:#ffffff; --ink:#111b21; --muted:#667781; --line:#e9edef;
+  --brand:#008069; --brand-ink:#ffffff; --brand-soft:#e7fce3;
+  --chat-bg:#efeae2; --in:#ffffff; --out:#d9fdd3; --tick:#53bdeb;
+  --chip:#ffffff; --chip-ink:#008069; --chip-line:#cfe9e1;
+  --warn-bg:#fff4d6; --warn-ink:#6b4e00;
+  --shadow:0 1px 0.5px rgba(11,20,26,.13);
+  --pattern:rgba(0,0,0,.035);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b141a; --panel:#111b21; --ink:#e9edef; --muted:#8696a0; --line:#222d34;
+    --brand:#00a884; --brand-ink:#0b141a; --brand-soft:#103529;
+    --chat-bg:#0b141a; --in:#202c33; --out:#005c4b; --tick:#53bdeb;
+    --chip:#202c33; --chip-ink:#00a884; --chip-line:#2a3942;
+    --warn-bg:#3a3014; --warn-ink:#f3d98b;
+    --shadow:0 1px 0.5px rgba(0,0,0,.4);
+    --pattern:rgba(255,255,255,.025);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b141a; --panel:#111b21; --ink:#e9edef; --muted:#8696a0; --line:#222d34;
+  --brand:#00a884; --brand-ink:#0b141a; --brand-soft:#103529;
+  --chat-bg:#0b141a; --in:#202c33; --out:#005c4b; --tick:#53bdeb;
+  --chip:#202c33; --chip-ink:#00a884; --chip-line:#2a3942;
+  --warn-bg:#3a3014; --warn-ink:#f3d98b;
+  --shadow:0 1px 0.5px rgba(0,0,0,.4);
+  --pattern:rgba(255,255,255,.025);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 "Segoe UI",Helvetica,Arial,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--brand)}
+.banner{background:var(--warn-bg);color:var(--warn-ink);font-size:13px;text-align:center;padding:8px 16px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 40px;display:grid;grid-template-columns:minmax(0,430px) minmax(0,1fr);gap:24px;align-items:start}
+.wrap > *{min-width:0}
+@media (max-width:900px){.wrap{grid-template-columns:minmax(0,1fr);padding:12px 16px 32px}.phone{height:calc(100svh - 90px);min-height:520px}}
+@media (max-width:480px){.wrap{padding:0 0 24px;gap:16px}.side{padding:0 16px}.phone{border-radius:0;border-left:0;border-right:0;height:calc(100svh - 52px)}.msg{max-width:90%}}
+
+/* phone */
+.phone{background:var(--panel);border-radius:18px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.12);display:flex;flex-direction:column;height:min(780px,calc(100vh - 80px));min-height:560px;border:1px solid var(--line)}
+.head{background:var(--brand);color:#fff;display:flex;align-items:center;gap:12px;padding:10px 14px}
+:root[data-theme="dark"] .head{background:#202c33}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .head{background:#202c33}}
+.avatar{width:40px;height:40px;border-radius:50%;background:#fff;color:#008069;display:grid;place-items:center;font-weight:700;font-size:14px;letter-spacing:.5px;flex:none}
+.who{flex:1;min-width:0}
+.who b{display:flex;align-items:center;gap:6px;font-size:16px;font-weight:600}
+.verified{width:15px;height:15px;flex:none}
+.who small{display:block;font-size:12.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.iconbtn{background:none;border:0;color:inherit;cursor:pointer;padding:6px;border-radius:50%;display:grid;place-items:center;opacity:.9}
+.iconbtn:hover{background:rgba(255,255,255,.12)}
+.iconbtn svg{width:20px;height:20px}
+
+.chat{flex:1;overflow-y:auto;padding:14px 4% 8px;background-color:var(--chat-bg);
+  background-image:radial-gradient(var(--pattern) 1.2px,transparent 1.3px);background-size:18px 18px;scroll-behavior:smooth}
+.day{text-align:center;margin:4px 0 12px}
+.day span{background:var(--panel);color:var(--muted);font-size:12px;padding:5px 12px;border-radius:8px;box-shadow:var(--shadow)}
+.e2e{max-width:88%;margin:0 auto 14px;text-align:center;background:var(--warn-bg);color:var(--warn-ink);font-size:12px;padding:6px 10px;border-radius:8px;box-shadow:var(--shadow)}
+.row{display:flex;margin:2px 0}
+.row.out{justify-content:flex-end}
+.msg{position:relative;max-width:82%;padding:6px 9px 8px;border-radius:8px;box-shadow:var(--shadow);font-size:14.2px;overflow-wrap:anywhere;animation:pop .16s ease-out}
+.row.in .msg{background:var(--in);border-top-left-radius:0}
+.row.out .msg{background:var(--out);border-top-right-radius:0}
+.row.in + .row.in .msg{border-top-left-radius:8px}
+.row.out + .row.out .msg{border-top-right-radius:8px}
+.row.gap{margin-top:10px}
+.msg .meta{float:right;margin:6px 0 -4px 10px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:3px;white-space:nowrap}
+.msg .meta svg{width:16px;height:11px;color:var(--tick)}
+.msg a{word-break:break-all}
+@keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.typing{display:inline-flex;gap:4px;padding:12px 14px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--muted);opacity:.5;animation:blink 1.2s infinite}
+.typing i:nth-child(2){animation-delay:.2s}.typing i:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:.9}}
+
+.chips{display:flex;gap:6px;overflow-x:auto;padding:8px 10px 2px;background:var(--chat-bg);scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;background:var(--chip);color:var(--chip-ink);border:1px solid var(--chip-line);border-radius:16px;padding:6px 12px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:var(--shadow)}
+.chip:hover{filter:brightness(.97)}
+.chip b{opacity:.65;margin-right:4px;font-weight:600}
+.composer{display:flex;gap:8px;align-items:center;padding:8px 10px 10px;background:var(--chat-bg)}
+.composer input{flex:1;min-width:0;border:0;border-radius:22px;padding:11px 16px;font:inherit;background:var(--panel);color:var(--ink);box-shadow:var(--shadow);outline:none}
+.send{width:44px;height:44px;border-radius:50%;border:0;background:var(--brand);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none}
+.send svg{width:20px;height:20px}
+
+/* side panel */
+.side{display:flex;flex-direction:column;gap:16px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px}
+.card h1{font-size:22px;margin:0 0 6px;letter-spacing:-.01em}
+.card h2{font-size:15px;margin:0 0 12px;display:flex;align-items:center;gap:8px;justify-content:space-between}
+.lead-intro{color:var(--muted);margin:0 0 14px}
+.feat{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.feat li{background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13.5px}
+.feat li b{display:block;font-size:13.5px;margin-bottom:2px}
+.feat li span{color:var(--muted)}
+.try{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.try .chip{box-shadow:none}
+.count{background:var(--brand);color:#fff;border-radius:10px;padding:1px 8px;font-size:12px;margin-left:6px}
+.actions{display:flex;gap:6px}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer}
+.btn:hover{background:var(--bg)}
+.btn[disabled]{opacity:.45;cursor:default}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+tr.new td{animation:flash 1.6s ease-out}
+@keyframes flash{from{background:var(--brand-soft)}to{background:transparent}}
+.empty{color:var(--muted);font-size:13.5px;padding:18px;text-align:center}
+.tag{display:inline-block;background:var(--brand-soft);color:var(--brand);border-radius:6px;padding:1px 7px;font-size:12px;font-weight:600;white-space:nowrap}
+.alert{background:var(--chat-bg);border-radius:10px;padding:12px}
+.alert .msg{max-width:100%;display:block;animation:none}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;counter-reset:s;margin:0;padding:0;list-style:none}
+.flow li{counter-increment:s;background:var(--bg);border-radius:10px;padding:10px 12px;font-size:13px;color:var(--muted)}
+.flow li::before{content:counter(s);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--brand);color:#fff;font-size:11px;font-weight:700;margin-right:6px}
+.flow li b{color:var(--ink)}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:0 16px 24px}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <section class="phone" aria-label="WhatsApp chat demo">
+    <header class="head">
+      <div class="avatar" aria-hidden="true">AV</div>
+      <div class="who">
+        <b>Autoveer <svg class="verified" viewBox="0 0 24 24" aria-label="business"><path fill="#25D366" d="M12 1l2.6 2.2 3.4-.3.9 3.3 3 1.7-1.2 3.2 1.2 3.2-3 1.7-.9 3.3-3.4-.3L12 23l-2.6-2.2-3.4.3-.9-3.3-3-1.7 1.2-3.2L2.1 9.7l3-1.7.9-3.3 3.4.3z"/><path fill="#fff" d="M10.6 15.6l-3.1-3.1 1.4-1.4 1.7 1.7 4.6-4.6 1.4 1.4z"/></svg></b>
+        <small id="status">Business account · online</small>
+      </div>
+      <button class="iconbtn" id="themeBtn" title="Toggle dark mode" aria-label="Toggle dark mode"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 1 0 9 9c0-.5 0-1-.1-1.4A5.5 5.5 0 0 1 13.4 3.1 9 9 0 0 0 12 3z"/></svg></button>
+      <button class="iconbtn" id="resetBtn" title="Restart chat" aria-label="Restart chat"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V2L7 6l5 4V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></button>
+    </header>
+    <div class="chat" id="chat" aria-live="polite">
+      <div class="day"><span>TODAY</span></div>
+      <div class="e2e">🔒 This is a demo chat. Replies come from the Django server, the same engine that answers on WhatsApp.</div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <form class="composer" id="form" autocomplete="off">
+      <input id="input" placeholder="Type a message" aria-label="Message">
+      <button class="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg></button>
+    </form>
+  </section>
+
+  <aside class="side">
+    <div class="card">
+      <h1>Autoveer WhatsApp Assistant</h1>
+      <p class="lead-intro">A menu-driven WhatsApp bot for a multi-brand dealer (Nissan, Bajaj, Ashok Leyland, Massey Ferguson) with 8 branches across Haryana. It answers 24×7, books test drives and services, and hands every enquiry to the right branch as a structured lead.</p>
+      <ul class="feat">
+        <li><b>🚗 4 brands, 17 models</b><span>Highlights, test drive / ride / demo</span></li>
+        <li><b>🔧 Service booking</b><span>Reg-no &amp; date validation</span></li>
+        <li><b>🛡️ Insurance &amp; finance</b><span>New, renewal, claim, EMI</span></li>
+        <li><b>📍 8 branches</b><span>Google Maps directions</span></li>
+        <li><b>⌨️ Understands free text</b><span>"magnite price", "tractor service"</span></li>
+        <li><b>🔔 Staff alert</b><span>Lead pushed to branch WhatsApp</span></li>
+      </ul>
+      <div class="try" id="try"></div>
+    </div>
+
+    <div class="card">
+      <h2><span>Leads captured <span class="count" id="count">0</span></span>
+        <span class="actions"><a class="btn" href="/admin/bot/lead/" target="_blank" style="text-decoration:none">Django Admin ↗</a><button class="btn" id="csvBtn" disabled>Download CSV</button><button class="btn" id="clearBtn" disabled>Clear</button></span></h2>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Ref</th><th>Request</th><th>Vehicle</th><th>Branch</th><th>Date</th><th>Customer</th></tr></thead>
+        <tbody id="leads"><tr><td colspan="6" class="empty">Complete any booking in the chat and the lead appears here, and in the Django admin.</td></tr></tbody>
+      </table></div>
+    </div>
+
+    <div class="card">
+      <h2>Staff WhatsApp alert (preview)</h2>
+      <div class="alert" id="alert"><div class="empty">The branch team gets this message the moment a customer confirms.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>How it works</h2>
+      <ol class="flow">
+        <li><b>Customer</b> messages the dealership WhatsApp number</li>
+        <li><b>WhatsApp Cloud API</b> posts it to the Django <code>/webhook/</code></li>
+        <li><b>Engine</b> state machine picks the reply: menus, forms, validation</li>
+        <li><b>Lead</b> saved in the database, managed in Django Admin</li>
+        <li><b>Branch staff</b> get an instant WhatsApp alert to call back</li>
+      </ol>
+    </div>
+  </aside>
+</main>
+<script>
+(function () {
+  const chat = document.getElementById('chat');
+  const chips = document.getElementById('chips');
+  const input = document.getElementById('input');
+  const statusEl = document.getElementById('status');
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+    del(k) { try { localStorage.removeItem(k); } catch {} },
+  };
+  let leads = store.get('av-dj-leads', []);
+  let busy = false;
+  let lastSide = null;
+
+  const csrf = (document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/) || [])[1] || '';
+  async function api(path, body) {
+    const r = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+      body: JSON.stringify(body || {}),
+      credentials: 'same-origin',
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json();
+  }
+
+  const TICK = '<svg viewBox="0 0 16 11" fill="currentColor"><path d="M11.1.6 4.8 7 2.3 4.5 1.2 5.6l3.6 3.6 7.4-7.5zM15 .6 8.6 7l-.8-.8-1.1 1.1 1.9 1.9L16 1.7z"/></svg>';
+  const time = () => new Date().toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }).toLowerCase();
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // WhatsApp markup -> HTML (*bold* _italic_ ~strike~, links, newlines)
+  function wa(text) {
+    return esc(text)
+      .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>')
+      .replace(/(^|[\s(>])\*([^*\n]+)\*(?=[\s).,!?:<]|$)/gm, '$1<b>$2</b>')
+      .replace(/(^|[\s(>])_([^_\n]+)_(?=[\s).,!?:<]|$)/gm, '$1<i>$2</i>')
+      .replace(/(^|[\s(>])~([^~\n]+)~(?=[\s).,!?:<]|$)/gm, '$1<s>$2</s>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function bubble(side, text) {
+    const row = document.createElement('div');
+    row.className = `row ${side}` + (lastSide && lastSide !== side ? ' gap' : '');
+    row.innerHTML = `<div class="msg">${wa(text)}<span class="meta">${time()}${side === 'out' ? TICK : ''}</span></div>`;
+    chat.appendChild(row);
+    lastSide = side;
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  function typing(on) {
+    let t = document.getElementById('typing');
+    if (on && !t) {
+      t = document.createElement('div');
+      t.id = 'typing';
+      t.className = 'row in' + (lastSide === 'out' ? ' gap' : '');
+      t.innerHTML = '<div class="msg"><span class="typing"><i></i><i></i><i></i></span></div>';
+      chat.appendChild(t);
+      chat.scrollTop = chat.scrollHeight;
+    } else if (!on && t) t.remove();
+    statusEl.textContent = on ? 'typing…' : 'Business account · online';
+  }
+
+  function setChips(list) {
+    chips.innerHTML = '';
+    for (const q of list) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'chip';
+      b.innerHTML = /^\d+$/.test(q.reply) ? `<b>${q.reply}</b>${esc(q.label)}` : esc(q.label);
+      b.onclick = () => send(q.reply);
+      chips.appendChild(b);
+    }
+  }
+
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function send(text) {
+    if (busy) return;
+    const t = String(text).trim();
+    if (!t) return;
+    busy = true;
+    setChips([]);
+    bubble('out', t);
+    typing(true);
+    let res;
+    try {
+      res = await api('/api/chat/', { text: t });
+    } catch (e) {
+      typing(false);
+      bubble('in', `⚠️ Could not reach the bot server (${e.message}). Is \`python manage.py runserver\` running?`);
+      busy = false;
+      return;
+    }
+    for (const [i, r] of res.replies.entries()) {
+      typing(true);
+      await wait(Math.min(1100, (i ? 350 : 150) + r.text.length * 2.5));
+      typing(false);
+      bubble('in', r.text);
+    }
+    const last = res.replies[res.replies.length - 1];
+    setChips(last && last.quick ? last.quick : []);
+    if (res.lead) addLead(res.lead, res.staff_message);
+    busy = false;
+    input.focus({ preventScroll: true });
+  }
+
+  function addLead(lead, staffMessage) {
+    leads.unshift({ ...lead, staff_message: staffMessage });
+    store.set('av-dj-leads', leads);
+    renderLeads(true);
+  }
+
+  function renderLeads(fresh) {
+    const tb = document.getElementById('leads');
+    document.getElementById('count').textContent = leads.length;
+    document.getElementById('csvBtn').disabled = !leads.length;
+    document.getElementById('clearBtn').disabled = !leads.length;
+    if (!leads.length) {
+      tb.innerHTML = '<tr><td colspan="6" class="empty">Complete any booking in the chat and the lead appears here, and in the Django admin.</td></tr>';
+      document.getElementById('alert').innerHTML = '<div class="empty">The branch team gets this message the moment a customer confirms.</div>';
+      return;
+    }
+    tb.innerHTML = leads.map((l, i) => `<tr class="${fresh && i === 0 ? 'new' : ''}">
+      <td><a href="/admin/bot/lead/${encodeURIComponent(l.id)}/change/" target="_blank" title="Open in Django admin"><b>${esc(l.ref)}</b></a></td>
+      <td><span class="tag">${esc(l.title)}</span>${l.service_type ? `<br><small>${esc(l.service_type)}</small>` : ''}${l.topic ? `<br><small>${esc(l.topic)}</small>` : ''}</td>
+      <td>${esc(l.model_name || l.brand || l.vehicle_type || '–')}${l.reg_no ? `<br><small>${esc(l.reg_no)}</small>` : ''}</td>
+      <td>${esc(l.branch || '–')}</td>
+      <td>${esc(l.preferred_date || '–')}</td>
+      <td>${esc(l.name || '')}<br><small>${esc(l.phone || '')}</small></td></tr>`).join('');
+    document.getElementById('alert').innerHTML = `<div class="msg">${wa(leads[0].staff_message || '')}<span class="meta">${time()}</span></div>`;
+  }
+
+  function downloadCsv() {
+    const cols = ['ref', 'title', 'brand', 'model_name', 'vehicle_type', 'service_type', 'reg_no', 'topic', 'preferred_date', 'branch', 'name', 'phone'];
+    const cell = (v) => (v == null ? '' : /[",\n]/.test(String(v)) ? `"${String(v).replace(/"/g, '""')}"` : String(v));
+    const csv = '﻿' + cols.join(',') + '\n' + leads.slice().reverse().map((l) => cols.map((c) => cell(l[c])).join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = 'autoveer-leads.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
+  async function restart(greet) {
+    try { await api('/api/chat/reset/'); } catch {}
+    lastSide = null;
+    chat.querySelectorAll('.row').forEach((r) => r.remove());
+    setChips([{ reply: 'Hi', label: '👋 Hi' }]);
+    if (greet) setTimeout(() => send('Hi'), 400);
+  }
+
+  document.getElementById('form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = input.value;
+    input.value = '';
+    send(v);
+  });
+  document.getElementById('resetBtn').onclick = () => restart(false);
+  document.getElementById('csvBtn').onclick = downloadCsv;
+  document.getElementById('clearBtn').onclick = () => { leads = []; store.del('av-dj-leads'); renderLeads(); };
+  document.getElementById('themeBtn').onclick = () => {
+    const root = document.documentElement;
+    const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    root.dataset.theme = dark ? 'light' : 'dark';
+  };
+
+  const tries = ['Hi', 'magnite price', 'my tractor needs service', 'bada dost', 'car insurance', 'showroom kahan hai', 'talk to executive'];
+  const tryBox = document.getElementById('try');
+  tryBox.innerHTML = '<small style="width:100%;color:var(--muted)">Try typing:</small>';
+  for (const t of tries) {
+    const b = document.createElement('button');
+    b.className = 'chip';
+    b.type = 'button';
+    b.textContent = `“${t}”`;
+    b.onclick = () => { if (!busy) { if (window.innerWidth < 900) chat.scrollIntoView({ behavior: 'smooth' }); send(t); } };
+    tryBox.appendChild(b);
+  }
+
+  renderLeads();
+  restart(true);
+})();
+</script>
+{% endverbatim %}
+</body>
+</html>
